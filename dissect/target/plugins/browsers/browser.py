@@ -1,7 +1,6 @@
-from dissect.target.exceptions import UnsupportedPluginError
 from dissect.target.helpers.descriptor_extensions import UserRecordDescriptorExtension
 from dissect.target.helpers.record import create_extended_descriptor
-from dissect.target.plugin import Plugin, export
+from dissect.target.plugin import NamespacePlugin, export
 
 GENERIC_DOWNLOAD_RECORD_FIELDS = [
     ("datetime", "ts_start"),
@@ -60,7 +59,7 @@ BrowserHistoryRecord = create_extended_descriptor([UserRecordDescriptorExtension
 )
 
 
-class BrowserPlugin(Plugin):
+class BrowserPlugin(NamespacePlugin):
     """General browser plugin.
 
     This plugin groups the functions of all browser plugins. For example,
@@ -69,44 +68,14 @@ class BrowserPlugin(Plugin):
     """
 
     __namespace__ = "browser"
-    __findable__ = False
 
-    BROWSERS = [
+    SUBPLUGINS = [
         "chrome",
         "chromium",
         "edge",
         "firefox",
         "iexplore",
     ]
-
-    def __init__(self, target):
-        super().__init__(target)
-        self._plugins = []
-        for entry in self.BROWSERS:
-            try:
-                self._plugins.append(getattr(self.target, entry))
-            except Exception:
-                target.log.exception("Failed to load browser plugin: %s", entry)
-
-    def _func(self, func_name: str):
-        """Return the supported browser plugin records.
-
-        Args:
-            func_name: Exported function of the browser plugin to find.
-
-        Yields:
-            Record from the browser function.
-        """
-        for plugin_name in self._plugins:
-            try:
-                for entry in getattr(plugin_name, func_name)():
-                    yield entry
-            except Exception:
-                self.target.log.exception("Failed to execute browser plugin: %s.%s", plugin_name._name, func_name)
-
-    def check_compatible(self) -> bool:
-        if not len(self._plugins):
-            raise UnsupportedPluginError("No compatible browser plugins found")
 
     @export(record=BrowserDownloadRecord)
     def downloads(self):

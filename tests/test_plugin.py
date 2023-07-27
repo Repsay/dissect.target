@@ -5,11 +5,17 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from dissect.target.plugin import (
+    PLUGINS,
+    NamespacePlugin,
+    Plugin,
+    PluginError,
     environment_variable_paths,
+    export,
     find_plugin_functions,
     get_external_module_paths,
     save_plugin_import_failure,
 )
+from dissect.target.target import Target
 
 
 def test_save_plugin_import_failure():
@@ -118,3 +124,54 @@ def test_find_plugin_function_unix(target_unix):
 
     assert len(found) == 1
     assert found[0].name == "os.unix.services.services"
+
+
+def test_namespace_plugin(target_win: Target) -> None:
+    class TestPlugin(NamespacePlugin):
+        pass
+
+    class TestPlugin1(NamespacePlugin):
+        __namespace__ = "NS"
+
+    class TestPlugin2(NamespacePlugin):
+        __namespace__ = "NS"
+        __findable__ = False
+        SUBPLUGINS = ["subtest"]
+
+        @export(output="yield")
+        def test(self):
+            yield from self._func("test")
+
+    class Subtest(Plugin):
+        __namespace__ = "subtest"
+        __findable__ = False
+
+        @export(output="yield")
+        def test(self):
+            yield "test"
+
+    expected_error = None
+    try:
+        TestPlugin(target_win)
+    except PluginError as err:
+        expected_error = err
+    assert isinstance(expected_error, PluginError)
+
+    expected_error = None
+    try:
+        TestPlugin1(target_win)
+    except PluginError as err:
+        expected_error = err
+    assert isinstance(expected_error, PluginError)
+
+    expected_error = None
+    test_plugin = TestPlugin2(target_win)
+    assert isinstance(test_plugin, TestPlugin2)
+
+    target_win._register_plugin_functions(Subtest(target_win))
+    target_win._register_plugin_functions(TestPlugin2(target_win))
+
+    assert list(target_win.NS.test())[0] == "test"
+
+    # Remove test plugin from list afterwards to avoid order effects
+    del PLUGINS["tests"]

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, Type
 
-from dissect.target.exceptions import PluginError
+from dissect.target.exceptions import PluginError, UnsupportedPluginError
 from dissect.target.helpers import cache
 from dissect.target.helpers.record import EmptyRecord
 
@@ -793,8 +793,50 @@ def _modulepath(cls) -> str:
     return cls.__module__.replace(MODULE_PATH, "").lstrip(".")
 
 
-# Needs to be at the bottom of the module because __init_subclass__ requires everything
+# These need to be at the bottom of the module because __init_subclass__ requires everything
 # in the parent class Plugin to be defined and resolved.
+class NamespacePlugin(Plugin):
+    __findable__ = False
+
+    def __init__(self, target: Target):
+        """A Namespace plugin provides services to access functionality
+        from a group of subplugins through an internal function _func.
+        Upon initialisation, subplugins are collected.
+        """
+        super().__init__(target)
+        self._subplugins = []
+
+        for attr in ["__namespace__", "SUBPLUGINS"]:
+            if not hasattr(self, attr):
+                raise PluginError(f"Namespace plugin lacks {attr} attribute")
+
+        for entry in self.SUBPLUGINS:
+            try:
+                self._subplugins.append(getattr(self.target, entry))
+            except Exception:  # noqa
+                target.log.exception("Failed to load subplugin: %s", entry)
+
+    def _func(self, func_name: str) -> None:
+        """Return the supported subplugin records.
+
+        Args:
+            func_name: Exported function of the subplugin to find.
+
+        Yields:
+            Record from the sub function.
+        """
+        for subplugin in self._subplugins:
+            try:
+                for entry in getattr(subplugin, func_name)():
+                    yield entry
+            except Exception:
+                self.target.log.exception("Failed to execute subplugin: {}.{}", subplugin._name, func_name)
+
+    def check_compatible(self) -> None:
+        if not len(self._subplugins):
+            raise UnsupportedPluginError("No compatible subplugins found")
+
+
 class InternalPlugin(Plugin):
     """Parent class for internal plugins.
 
