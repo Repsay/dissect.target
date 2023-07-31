@@ -1,11 +1,11 @@
 from dissect.target.helpers.descriptor_extensions import UserRecordDescriptorExtension
 from dissect.target.helpers.record import create_extended_descriptor
-from dissect.target.plugin import export, Plugin, PLUGINS
+from dissect.target.plugin import PLUGINS, Plugin, export
 from dissect.target.plugins.browsers.browser import (
     GENERIC_DOWNLOAD_RECORD_FIELDS,
     GENERIC_EXTENSION_RECORD_FIELDS,
     GENERIC_HISTORY_RECORD_FIELDS,
-    BrowserPlugin
+    BrowserPlugin,
 )
 from dissect.target.plugins.browsers.chromium import ChromiumMixin
 
@@ -50,4 +50,3 @@ class ChromePlugin(ChromiumMixin, BrowserPlugin):
     def history(self):
         """Return browser history records for Google Chrome."""
         yield from super().history("chrome")
-

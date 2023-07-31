@@ -17,6 +17,7 @@ from dissect.target.plugins.browsers.browser import (
     GENERIC_DOWNLOAD_RECORD_FIELDS,
     GENERIC_EXTENSION_RECORD_FIELDS,
     GENERIC_HISTORY_RECORD_FIELDS,
+    BrowserPlugin,
     try_idna,
 )
 from dissect.target.plugins.general.users import UserDetails
@@ -50,13 +51,9 @@ class ChromiumMixin:
             for d in hist_paths:
                 cur_dir: TargetPath = user_details.home_path.joinpath(d)
                 cur_dir = cur_dir.resolve()
-                print(cur_dir)
-                print(cur_dir.exists())
                 if not cur_dir.exists() or (user_details.user, cur_dir) in users_dirs:
                     continue
                 users_dirs.append((user_details.user, cur_dir))
-        print(users_dirs)
-        exit(0)
         return users_dirs
 
     def _iter_db(self, filename: str) -> Iterator[SQLite3]:
@@ -322,8 +319,7 @@ class ChromiumMixin:
                 self.target.log.warning("Error processing history file: %s", db_file, exc_info=e)
 
 
-
-class ChromiumPlugin(ChromiumMixin, Plugin):
+class ChromiumPlugin(ChromiumMixin, BrowserPlugin):
     """Chromium browser plugin."""
 
     __namespace__ = "chromium"

@@ -1,6 +1,6 @@
 from dissect.target.helpers.descriptor_extensions import UserRecordDescriptorExtension
 from dissect.target.helpers.record import create_extended_descriptor
-from dissect.target.plugin import export, NamespacePlugin
+from dissect.target.plugin import NamespacePlugin, export
 
 GENERIC_DOWNLOAD_RECORD_FIELDS = [
     ("datetime", "ts_start"),
@@ -57,6 +57,7 @@ BrowserExtensionRecord = create_extended_descriptor([UserRecordDescriptorExtensi
 BrowserHistoryRecord = create_extended_descriptor([UserRecordDescriptorExtension])(
     "browser/history", GENERIC_HISTORY_RECORD_FIELDS
 )
+
 
 class BrowserPlugin(NamespacePlugin):
     __namespace__ = "browser"

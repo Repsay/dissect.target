@@ -11,8 +11,8 @@ from dissect.target.plugin import Plugin, export
 from dissect.target.plugins.browsers.browser import (
     GENERIC_DOWNLOAD_RECORD_FIELDS,
     GENERIC_HISTORY_RECORD_FIELDS,
+    BrowserPlugin,
     try_idna,
-    BrowserPlugin
 )
 from dissect.target.plugins.general.users import UserDetails
 from dissect.target.target import Target
