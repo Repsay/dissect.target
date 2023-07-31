@@ -12,6 +12,7 @@ from dissect.target.plugins.browsers.browser import (
     GENERIC_DOWNLOAD_RECORD_FIELDS,
     GENERIC_HISTORY_RECORD_FIELDS,
     try_idna,
+    BrowserPlugin
 )
 from dissect.target.plugins.general.users import UserDetails
 from dissect.target.target import Target
@@ -68,7 +69,7 @@ class WebCache:
         yield from self._iter_records("iedownload")
 
 
-class InternetExplorerPlugin(Plugin):
+class InternetExplorerPlugin(BrowserPlugin):
     """Internet explorer browser plugin."""
 
     __namespace__ = "iexplore"

@@ -495,7 +495,6 @@ class Target:
             PluginError: Raised when any other exception occurs while trying to load the plugin.
         """
         self.log.debug("Adding plugin: %s", plugin_cls)
-
         if not isinstance(plugin_cls, plugin.Plugin):
             try:
                 p = plugin_cls(self)
@@ -508,7 +507,7 @@ class Target:
 
         if not isinstance(p, plugin.Plugin):
             raise PluginError(f"Not a subclass of Plugin: {p}")
-
+        self.log.debug("check_compatible...")
         if check_compatible:
             try:
                 if p.check_compatible() is False:
@@ -522,7 +521,7 @@ class Target:
                 )
 
         self._register_plugin_functions(p)
-
+        self.log.debug("Done adding...")
         return p
 
     def _register_plugin_functions(self, plugin_inst: plugin.Plugin) -> None:

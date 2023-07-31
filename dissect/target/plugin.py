@@ -229,6 +229,7 @@ class Plugin:
         )
 
     def __init__(self, target: Target):
+        print(f"INITING: {self}")
         self.target = target
 
     def is_compatible(self) -> bool:
@@ -416,6 +417,8 @@ def register(plugincls: Type[Plugin]) -> None:
     """
     if not issubclass(plugincls, Plugin):
         raise ValueError("Not a subclass of Plugin")
+
+    print(f"REGISTERING {plugincls}")
 
     exports = []
     functions = []
@@ -718,6 +721,7 @@ def generate() -> dict[str, Any]:
     Returns:
         The global ``PLUGINS`` dictionary.
     """
+    print("GENERATING PLUGINS")
     global PLUGINS
 
     if "_failed" not in PLUGINS:
@@ -729,6 +733,7 @@ def generate() -> dict[str, Any]:
         module_tuple = (MODULE_PATH, *relative_path.parent.parts, relative_path.stem)
         load_module_from_name(".".join(module_tuple))
 
+    #print(PLUGINS)
     return PLUGINS
 
 
@@ -796,25 +801,31 @@ def _modulepath(cls) -> str:
 # These need to be at the bottom of the module because __init_subclass__ requires everything
 # in the parent class Plugin to be defined and resolved.
 class NamespacePlugin(Plugin):
-    __findable__ = False
-
+    
     def __init__(self, target: Target):
         """A Namespace plugin provides services to access functionality
         from a group of subplugins through an internal function _func.
         Upon initialisation, subplugins are collected.
         """
+        
+        
         super().__init__(target)
+        
         self._subplugins = []
-
-        for attr in ["__namespace__", "SUBPLUGINS"]:
-            if not hasattr(self, attr):
-                raise PluginError(f"Namespace plugin lacks {attr} attribute")
-
+        common_methods = {}
+        
+        
+        print(self.SUBPLUGINS)
+        #exit(0)
         for entry in self.SUBPLUGINS:
+            #print(entry)
+            
             try:
-                self._subplugins.append(getattr(self.target, entry))
+                subplugin = getattr(self.target, entry)
+                self._subplugins.append(subplugin)
             except Exception:  # noqa
                 target.log.exception("Failed to load subplugin: %s", entry)
+           
 
     def _func(self, func_name: str) -> None:
         """Return the supported subplugin records.
@@ -835,6 +846,64 @@ class NamespacePlugin(Plugin):
     def check_compatible(self) -> None:
         if not len(self._subplugins):
             raise UnsupportedPluginError("No compatible subplugins found")
+
+    
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        print(cls)
+        print(cls.__bases__)
+        
+        def create_stub(methodname):
+            print("Creating stub for:")
+            print(methodname)
+            def stub(self):
+                yield from self._func(method_name)
+            
+            return export(stub)
+        
+        if cls.__bases__[0] != NamespacePlugin:
+            print("SUB")
+            print(cls.__nsplugin__)
+            
+            if not getattr(cls.__nsplugin__, "SUBPLUGINS", None):
+                cls.__nsplugin__.SUBPLUGINS = []
+                
+                
+            print(cls)
+            print(cls.__namespace__)
+            cls.__init__ = Plugin.__init__
+            
+            
+            #print(dir(cls))
+            #exit(0)
+            cls.__nsplugin__.SUBPLUGINS.append(cls.__namespace__)
+            
+            #setattr(cls.__nsplugin__, "SUBPLUGINS", getattr(cls.__nsplugin__, "SUBPLUGINS", []).append(cls))
+            #exit(0)
+            
+            
+            #print(getattr(cls, "SUBPLUGINS"))
+            #print(cls.__nsplugin__.SUBPLUGINS)
+            #exit(0)
+            
+            for subplugin_func_name in get_nonprivate_attribute_names(cls):
+                subplugin_func = getattr(cls, subplugin_func_name)
+                if isinstance(subplugin_func, Callable):
+                    if getattr(subplugin_func,"__exported__",False):
+                        print(subplugin_func_name)
+                        setattr(cls.__nsplugin__, subplugin_func_name, create_stub(subplugin_func_name))
+                        cls.__nsplugin__.__exports__.append(subplugin_func_name)
+            
+            
+            print(">>>>>")
+            print((cls.__nsplugin__.downloads.__exported__))
+            
+        else:
+            print("NS")
+            cls.__nsplugin__ = cls
+            
+        
+
 
 
 class InternalPlugin(Plugin):
@@ -879,9 +948,12 @@ def plugin_function_index(target: Target) -> tuple[dict[str, Any], set[str]]:
         yield from os_plugins()
         yield from child_plugins()  # Doesn't export anything but added for completeness.
 
+
     for available_original in all_plugins():
         # Prevent modifying the global PLUGINS dict, otherwise -f os.windows._os.users fails for instance.
         available = available_original.copy()
+        if available["class"] == "BrowserPlugin":
+            print(available)
         if "get_all_records" in available["exports"]:
             available["exports"].remove("get_all_records")
         modulepath = available["module"]
@@ -916,6 +988,8 @@ def find_plugin_functions(
     """
     result = []
     functions, rootset = plugin_function_index(target)
+    
+    print(functions["browsers.browser.downloads"])
 
     invalid_funcs = set()
 

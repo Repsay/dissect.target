@@ -318,6 +318,7 @@ class ChromiumMixin:
                 self.target.log.warning("Error processing history file: %s", db_file, exc_info=e)
 
 
+
 class ChromiumPlugin(ChromiumMixin, Plugin):
     """Chromium browser plugin."""
 
