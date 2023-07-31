@@ -859,7 +859,7 @@ class NamespacePlugin(Plugin):
             def stub(self):
                 yield from self._func(method_name)
             
-            return export(stub)
+            return stub
         
         if cls.__bases__[0] != NamespacePlugin:
             print("SUB")
@@ -891,12 +891,14 @@ class NamespacePlugin(Plugin):
                 if isinstance(subplugin_func, Callable):
                     if getattr(subplugin_func,"__exported__",False):
                         print(subplugin_func_name)
-                        setattr(cls.__nsplugin__, subplugin_func_name, create_stub(subplugin_func_name))
-                        cls.__nsplugin__.__exports__.append(subplugin_func_name)
+                        if subplugin_func_name == "downloads":
+                            cls.__nsplugin__.downloads = lambda s: s._f("downloads")
+                            #setattr(cls.__nsplugin__, subplugin_func_name, export(create_stub(subplugin_func_name)))
+                            cls.__nsplugin__.__exports__.append(subplugin_func_name)
             
             
-            print(">>>>>")
-            print((cls.__nsplugin__.downloads.__exported__))
+            #print(">>>>>")
+            #print((cls.__nsplugin__.downloads.__exported__))
             
         else:
             print("NS")

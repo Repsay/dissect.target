@@ -50,9 +50,13 @@ class ChromiumMixin:
             for d in hist_paths:
                 cur_dir: TargetPath = user_details.home_path.joinpath(d)
                 cur_dir = cur_dir.resolve()
+                print(cur_dir)
+                print(cur_dir.exists())
                 if not cur_dir.exists() or (user_details.user, cur_dir) in users_dirs:
                     continue
                 users_dirs.append((user_details.user, cur_dir))
+        print(users_dirs)
+        exit(0)
         return users_dirs
 
     def _iter_db(self, filename: str) -> Iterator[SQLite3]:
