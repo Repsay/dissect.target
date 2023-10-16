@@ -28,6 +28,7 @@ from dissect.target.exceptions import (
     RegistryError,
     RegistryKeyNotFoundError,
     RegistryValueNotFoundError,
+    TargetError,
 )
 from dissect.target.filesystem import FilesystemEntry, RootFilesystemEntry
 from dissect.target.helpers import fsutil, regutil
@@ -1213,7 +1214,11 @@ def main() -> None:
     if args.quiet:
         logging.getLogger("dissect").setLevel(level=logging.ERROR)
 
-    open_shell(args.targets, args.python, args.registry)
+    try:
+        open_shell(args.targets, args.python, args.registry)
+    except TargetError as e:
+        log.error(e)
+        log.debug("", exc_info=e)
 
 
 if __name__ == "__main__":
