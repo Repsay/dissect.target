@@ -9,3 +9,4 @@ tests/data/plugins/os/windows/dpapi/** filter=lfs diff=lfs merge=lfs -text
 tests/data/volumes/md-nested.bin.gz filter=lfs diff=lfs merge=lfs -text
 tests/data/plugins/os/windows/notifications/appdb.dat.v3.gz filter=lfs diff=lfs merge=lfs -text
 tests/data/plugins/os/windows/notifications/wpndatabase.db filter=lfs diff=lfs merge=lfs -text
+tests/data/loaders/ab/test.ab filter=lfs diff=lfs merge=lfs -text
