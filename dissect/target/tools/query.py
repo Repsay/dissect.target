@@ -355,130 +355,25 @@ def main():
                 rs = record_output(args.strings, args.json)
                 for entry in record_entries:
                     try:
-                        target = target.open_child(args.child)
-                    except Exception:
-                        target.log.exception("Exception while opening child '%s'", args.child)
-
-                record_entries = []
-                basic_entries = []
-                yield_entries = []
-
-                # Keep a set of plugins that were already executed on the target.
-                executed_plugins = set()
-
-                first_seen_output_type = default_output_type
-                cli_params_unparsed = rest
-
-                func_defs, _ = find_plugin_functions(target, args.function, False)
-
-                for func_def in func_defs:
-                    # Avoid executing same plugin for multiple OSes (like hostname)
-                    if (
-                        f"{getattr(func_def.class_object, '__namespace__', '')}.{func_def.method_name}"
-                        in executed_plugins
-                    ):
-                        continue
-
-                    # If the default type is record (meaning we skip everything else)
-                    # and actual output type is not record, continue.
-                    # We perform this check here because plugins that require output files/dirs
-                    # will exit if we attempt to exec them without (because they are implied by the wildcard).
-                    # Also this saves cycles of course.
-                    if default_output_type == "record" and func_def.output_type != "record":
-                        continue
-
-                    try:
-                        output_type, result, cli_params_unparsed = execute_function_on_target(
-                            target, func_def, cli_params_unparsed
-                        )
-                    except UnsupportedPluginError as e:
-                        target.log.error(
-                            "Unsupported plugin for %s: %s",
-                            func_def.name,
-                            e.root_cause_str(),
-                        )
-
-                        target.log.debug("%s", func_def, exc_info=e)
-                        continue
-                    except PluginNotFoundError:
-                        target.log.error("Cannot find plugin %s", func_def.name)
-                        target.log.debug("%s", func_def)
-                        continue
-                    except FatalError as fatal:
-                        fatal.emit_last_message(target.log.error)
-                        parser.exit(1)
-                    except Exception:
-                        target.log.error("Exception while executing function `%s`", func_def, exc_info=True)
-                        continue
-
-                    if first_seen_output_type and output_type != first_seen_output_type:
-                        target.log.error(
-                            (
-                                "Can't mix functions that generate different outputs: output type `%s` from `%s` "
-                                "does not match first seen output `%s`."
-                            ),
-                            output_type,
-                            func_def,
-                            first_seen_output_type,
-                        )
-                        parser.exit()
-
-                    if not first_seen_output_type:
-                        first_seen_output_type = output_type
-
-                    executed_plugins.add(
-                        f"{getattr(func_def.class_object, '__namespace__', '')}.{func_def.method_name}"
-                    )
-
-                    if output_type == "record":
-                        record_entries.append(result)
-                    elif output_type == "yield":
-                        yield_entries.append(result)
-                    elif output_type == "none":
-                        target.log.info("No result for function `%s` (output type is set to 'none')", func_def)
-                        continue
-                    else:
-                        basic_entries.append(result)
-
-                # Write basic functions
-                if len(basic_entries) > 0:
-                    basic_entries_delim = args.delimiter.join(map(str, basic_entries))
-                    if not args.cmdb:
-                        print(f"{target} {basic_entries_delim}")
-                    else:
-                        print(f"{target.path}{args.delimiter}{basic_entries_delim}")
-
-                # Write yield functions
-                for entry in yield_entries:
-                    for e in entry:
-                        print(e)
-
-                # Write records
-                count = 0
-                break_out = False
-                if len(record_entries):
-                    rs = record_output(args.strings, args.json)
-                    for entry in record_entries:
-                        try:
-                            for record_entries in entry:
-                                if args.hash:
-                                    rs.write(hashutil.hash_path_records(target, record_entries))
-                                else:
-                                    rs.write(record_entries)
-                                count += 1
-                                if args.limit is not None and count >= args.limit:
-                                    break_out = True
-                                    break
-                        except Exception as e:
-                            # Ignore errors if multiple functions
-                            if len(funcs) > 1:
-                                target.log.error(f"Exception occurred while processing output of {func}", exc_info=e)
-                                pass
+                        for record_entries in entry:
+                            if args.hash:
+                                rs.write(hashutil.hash_path_records(target, record_entries))
                             else:
-                                raise e
+                                rs.write(record_entries)
+                            count += 1
+                            if args.limit is not None and count >= args.limit:
+                                break_out = True
+                                break
+                    except Exception as e:
+                        # Ignore errors if multiple functions
+                        if len(funcs) > 1:
+                            target.log.error(f"Exception occurred while processing output of {func}", exc_info=e)
+                            pass
+                        else:
+                            raise e
 
-                        if break_out:
-                            break
+                    if break_out:
+                        break
     except TargetError as e:
         log.error(e)
         log.debug("", exc_info=e)
